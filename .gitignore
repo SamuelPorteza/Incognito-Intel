@@ -1,49 +1,42 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# Environment variables — never commit real secrets
+  .env
+  .env.local
+  .env.*.local
 
-# compiled output
-dist
-tmp
-out-tsc
-*.tsbuildinfo
-.expo
-.expo-shared
+  # Dependencies
+  node_modules/
+  .pnpm-store/
 
-# dependencies
-node_modules
+  # Build outputs
+  dist/
+  build/
+  .next/
+  out/
 
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+  # Drizzle generated migrations (keep schema, not snapshots)
+  lib/db/drizzle/
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+  # TypeScript build cache
+  *.tsbuildinfo
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
+  # Logs
+  *.log
+  npm-debug.log*
+  pnpm-debug.log*
 
-# System Files
-.DS_Store
-Thumbs.db
+  # OS artifacts
+  .DS_Store
+  Thumbs.db
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
+  # Editor directories
+  .vscode/
+  .idea/
+  *.swp
+  *.swo
 
-# Replit
-.cache/
-.local/
+  # Replit internal
+  .replit
+  replit.nix
+  .upm/
+  .cache/
+  

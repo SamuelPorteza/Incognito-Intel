@@ -1,13 +1,34 @@
 import { Link, useLocation } from "wouter";
 import { BookOpen, BarChart2, MessageCircle, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useHealthCheck } from "@workspace/api-client-react";
+import { useHealthCheck, useGetAlerts, getGetAlertsQueryKey } from "@workspace/api-client-react";
+
+const REFRESH_INTERVAL = 30_000;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { data: health } = useHealthCheck();
 
   const isTeacher = location.startsWith("/dashboard") || location.startsWith("/questions");
+
+  const { data: allAlerts } = useGetAlerts({
+    query: {
+      queryKey: getGetAlertsQueryKey(),
+      refetchInterval: REFRESH_INTERVAL,
+      enabled: isTeacher,
+    },
+  });
+
+  const dismissedAt =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("alertsDismissedAt") ?? "0")
+      : 0;
+
+  const activeAlertCount =
+    allAlerts?.filter((a) => {
+      if (!dismissedAt) return true;
+      return new Date(a.lastSeenAt).getTime() > dismissedAt;
+    }).length ?? 0;
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col bg-background md:flex-row">
@@ -22,17 +43,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
               href="/dashboard"
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                location === "/dashboard" ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground"
+                location === "/dashboard"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                  : "text-muted-foreground"
               )}
             >
-              <BarChart2 className="h-4 w-4" />
-              Analytics
+              <BarChart2 className="h-4 w-4 shrink-0" />
+              <span className="flex-1">Analytics</span>
+              {activeAlertCount > 0 && (
+                <span className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-amber-400 text-amber-900 text-[10px] font-bold leading-none animate-pulse">
+                  {activeAlertCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/questions"
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                location === "/questions" ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : "text-muted-foreground"
+                location === "/questions"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                  : "text-muted-foreground"
               )}
             >
               <MessageCircle className="h-4 w-4" />

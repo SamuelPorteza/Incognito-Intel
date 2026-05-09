@@ -19,6 +19,7 @@ import type {
 import type {
   AnalyticsSummary,
   ApiError,
+  BurstAlert,
   GetRecentActivityParams,
   HealthStatus,
   HeatmapEntry,
@@ -867,6 +868,73 @@ export function useGetRecentActivity<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetRecentActivityQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Detect topic burst alerts (5+ questions on one topic in 10 minutes)
+ */
+export const getGetAlertsUrl = () => {
+  return `/api/analytics/alerts`;
+};
+
+export const getAlerts = async (
+  options?: RequestInit,
+): Promise<BurstAlert[]> => {
+  return customFetch<BurstAlert[]>(getGetAlertsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAlertsQueryKey = () => {
+  return [`/api/analytics/alerts`] as const;
+};
+
+export const getGetAlertsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAlerts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAlertsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAlerts>>> = ({
+    signal,
+  }) => getAlerts({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAlerts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAlertsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAlerts>>
+>;
+export type GetAlertsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Detect topic burst alerts (5+ questions on one topic in 10 minutes)
+ */
+
+export function useGetAlerts<
+  TData = Awaited<ReturnType<typeof getAlerts>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAlertsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

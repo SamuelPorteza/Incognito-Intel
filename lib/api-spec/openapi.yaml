@@ -226,6 +226,21 @@ paths:
                 items:
                   $ref: "#/components/schemas/Question"
 
+  /analytics/alerts:
+    get:
+      operationId: getAlerts
+      tags: [analytics]
+      summary: Detect topic burst alerts (5+ questions on one topic in 10 minutes)
+      responses:
+        "200":
+          description: Active burst alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BurstAlert"
+
 components:
   schemas:
     HealthStatus:
@@ -324,6 +339,35 @@ components:
       required:
         - name
         - category
+
+    BurstAlert:
+      type: object
+      properties:
+        topicId:
+          type: integer
+        topicName:
+          type: string
+        category:
+          type: string
+        count:
+          type: integer
+        windowMinutes:
+          type: integer
+        threshold:
+          type: integer
+        firstSeenAt:
+          type: string
+        lastSeenAt:
+          type: string
+      required:
+        - topicId
+        - topicName
+        - category
+        - count
+        - windowMinutes
+        - threshold
+        - firstSeenAt
+        - lastSeenAt
 
     HeatmapEntry:
       type: object

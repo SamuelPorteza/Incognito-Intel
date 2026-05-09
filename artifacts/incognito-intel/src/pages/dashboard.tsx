@@ -11,7 +11,7 @@ import {
   Cell
 } from "recharts";
 import { formatDistanceToNow } from "date-fns";
-import { HelpCircle, Brain, Target, MessageSquare, RefreshCw, BarChart2 } from "lucide-react";
+import { HelpCircle, Brain, Target, MessageSquare, RefreshCw, BarChart2, AlertTriangle, X, Zap } from "lucide-react";
 
 import { 
   useGetAnalyticsSummary, 
@@ -20,15 +20,79 @@ import {
   getGetHeatmapQueryKey,
   useGetRecentActivity,
   getGetRecentActivityQueryKey,
+  useGetAlerts,
+  getGetAlertsQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const REFRESH_INTERVAL = 30_000;
 
+function BurstAlertBanner({ onDismissAll }: { onDismissAll: () => void }) {
+  const { data: alerts } = useGetAlerts({
+    query: {
+      queryKey: getGetAlertsQueryKey(),
+      refetchInterval: REFRESH_INTERVAL,
+    },
+  });
+
+  if (!alerts || alerts.length === 0) return null;
+
+  return (
+    <div
+      data-testid="burst-alert-banner"
+      className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 flex items-start gap-3 animate-in slide-in-from-top-2 duration-300"
+    >
+      <div className="shrink-0 mt-0.5">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900">
+          <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+          {alerts.length === 1 ? "Topic Burst Detected" : `${alerts.length} Topic Bursts Detected`}
+        </p>
+        <div className="space-y-1.5">
+          {alerts.map((alert) => (
+            <div
+              key={alert.topicId}
+              data-testid={`alert-topic-${alert.topicId}`}
+              className="flex items-center gap-2 flex-wrap"
+            >
+              <span className="inline-flex items-center gap-1 bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-xs font-medium px-2 py-0.5 rounded-full">
+                <AlertTriangle className="w-3 h-3" />
+                {alert.topicName}
+              </span>
+              <span className="text-xs text-amber-700 dark:text-amber-400">
+                {alert.count} questions in the last {alert.windowMinutes} min —{" "}
+                {alert.count} students are stuck here right now
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
+          Consider pausing the lesson to address {alerts.length === 1 ? "this topic" : "these topics"}.
+        </p>
+      </div>
+      <button
+        onClick={onDismissAll}
+        className="shrink-0 text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+        data-testid="button-dismiss-alerts"
+        title="Dismiss alerts"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(REFRESH_INTERVAL / 1000);
+  const [alertsDismissedAt, setAlertsDismissedAt] = useState<number | null>(() => {
+    const stored = localStorage.getItem("alertsDismissedAt");
+    return stored ? Number(stored) : null;
+  });
 
   const { data: summary, isLoading: loadingSummary, isFetching: fetchingSummary } = useGetAnalyticsSummary({
     query: {
@@ -48,6 +112,25 @@ export default function Dashboard() {
       refetchInterval: REFRESH_INTERVAL,
     },
   });
+  const { data: allAlerts } = useGetAlerts({
+    query: {
+      queryKey: getGetAlertsQueryKey(),
+      refetchInterval: REFRESH_INTERVAL,
+    },
+  });
+
+  // Only show alerts that arrived after the last dismiss
+  const activeAlerts = allAlerts?.filter((a) => {
+    if (!alertsDismissedAt) return true;
+    return new Date(a.lastSeenAt).getTime() > alertsDismissedAt;
+  });
+  const showAlerts = activeAlerts && activeAlerts.length > 0;
+
+  function dismissAlerts() {
+    const now = Date.now();
+    setAlertsDismissedAt(now);
+    localStorage.setItem("alertsDismissedAt", String(now));
+  }
 
   useEffect(() => {
     if (!fetchingSummary) {
@@ -64,7 +147,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 w-full animate-in fade-in duration-500">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 w-full animate-in fade-in duration-500">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-serif tracking-tight mb-2">Classroom Analytics</h1>
@@ -80,8 +163,13 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Burst alert banner */}
+      {showAlerts && (
+        <BurstAlertBanner onDismissAll={dismissAlerts} />
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm border-border/60">
+        <Card className={`shadow-sm border-border/60 ${showAlerts ? "ring-1 ring-amber-200 dark:ring-amber-800" : ""}`}>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Questions</CardTitle>
             <HelpCircle className="w-4 h-4 text-muted-foreground" />
@@ -188,14 +276,14 @@ export default function Dashboard() {
                     />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                       {heatmap.map((entry, index) => {
-                        // Determine color intensity based on percentage
-                        const colorVar = 
-                          entry.percentage > 25 ? "var(--chart-5)" :
-                          entry.percentage > 15 ? "var(--chart-4)" :
-                          entry.percentage > 10 ? "var(--chart-3)" :
-                          entry.percentage > 5 ? "var(--chart-2)" :
-                          "var(--chart-1)";
-                          
+                        const isAlerting = activeAlerts?.some((a) => a.topicId === entry.topicId);
+                        const colorVar = isAlerting
+                          ? "38 92% 50%"
+                          : entry.percentage > 25 ? "var(--chart-5)"
+                          : entry.percentage > 15 ? "var(--chart-4)"
+                          : entry.percentage > 10 ? "var(--chart-3)"
+                          : entry.percentage > 5 ? "var(--chart-2)"
+                          : "var(--chart-1)";
                         return <Cell key={`cell-${index}`} fill={`hsl(${colorVar})`} />;
                       })}
                     </Bar>
@@ -230,27 +318,34 @@ export default function Dashboard() {
               </div>
             ) : recent && recent.length > 0 ? (
               <div className="space-y-6">
-                {recent.map((question) => (
-                  <div key={question.id} className="group flex flex-col gap-1.5 border-b border-border/50 pb-4 last:border-0 last:pb-0">
-                    <p className="text-sm font-medium text-foreground line-clamp-2">
-                      "{question.content}"
-                    </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        {question.topicName ? (
-                          <span className="bg-secondary px-2 py-0.5 rounded-full text-[10px] font-medium text-secondary-foreground">
-                            {question.topicName}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium">Uncategorized</span>
-                        )}
+                {recent.map((question) => {
+                  const isAlerting = activeAlerts?.some((a) => a.topicId === question.topicId);
+                  return (
+                    <div
+                      key={question.id}
+                      className={`flex flex-col gap-1.5 border-b border-border/50 pb-4 last:border-0 last:pb-0 ${isAlerting ? "pl-2 border-l-2 border-l-amber-400" : ""}`}
+                    >
+                      <p className="text-sm font-medium text-foreground line-clamp-2">
+                        "{question.content}"
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          {question.topicName ? (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${isAlerting ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" : "bg-secondary text-secondary-foreground"}`}>
+                              {isAlerting && <AlertTriangle className="inline w-2.5 h-2.5 mr-1" />}
+                              {question.topicName}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium">Uncategorized</span>
+                          )}
+                        </div>
+                        <time dateTime={question.createdAt}>
+                          {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}
+                        </time>
                       </div>
-                      <time dateTime={question.createdAt}>
-                        {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}
-                      </time>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">

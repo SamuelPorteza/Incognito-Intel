@@ -159,3 +159,18 @@ export const GetRecentActivityResponseItem = zod.object({
 export const GetRecentActivityResponse = zod.array(
   GetRecentActivityResponseItem,
 );
+
+/**
+ * @summary Detect topic burst alerts (5+ questions on one topic in 10 minutes)
+ */
+export const GetAlertsResponseItem = zod.object({
+  topicId: zod.number(),
+  topicName: zod.string(),
+  category: zod.string(),
+  count: zod.number(),
+  windowMinutes: zod.number(),
+  threshold: zod.number(),
+  firstSeenAt: zod.string(),
+  lastSeenAt: zod.string(),
+});
+export const GetAlertsResponse = zod.array(GetAlertsResponseItem);

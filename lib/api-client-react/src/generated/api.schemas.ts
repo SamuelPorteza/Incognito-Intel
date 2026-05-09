@@ -57,6 +57,17 @@ export interface TopicInput {
   category: string;
 }
 
+export interface BurstAlert {
+  topicId: number;
+  topicName: string;
+  category: string;
+  count: number;
+  windowMinutes: number;
+  threshold: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
 export interface HeatmapEntry {
   topicId: number;
   topicName: string;

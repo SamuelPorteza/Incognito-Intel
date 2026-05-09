@@ -136,4 +136,45 @@ router.get("/recent", async (req, res) => {
   }
 });
 
+const BURST_THRESHOLD = 5;
+const BURST_WINDOW_MINUTES = 10;
+
+router.get("/alerts", async (req, res) => {
+  try {
+    const windowStart = new Date(Date.now() - BURST_WINDOW_MINUTES * 60 * 1000);
+
+    const rows = await db
+      .select({
+        topicId: topicsTable.id,
+        topicName: topicsTable.name,
+        category: topicsTable.category,
+        count: sql<number>`cast(count(${questionsTable.id}) as int)`,
+        firstSeenAt: sql<Date>`min(${questionsTable.createdAt})`,
+        lastSeenAt: sql<Date>`max(${questionsTable.createdAt})`,
+      })
+      .from(topicsTable)
+      .innerJoin(questionsTable, eq(questionsTable.topicId, topicsTable.id))
+      .where(gte(questionsTable.createdAt, windowStart))
+      .groupBy(topicsTable.id, topicsTable.name, topicsTable.category)
+      .having(sql`count(${questionsTable.id}) >= ${BURST_THRESHOLD}`)
+      .orderBy(sql`count(${questionsTable.id}) desc`);
+
+    res.json(
+      rows.map((r) => ({
+        topicId: r.topicId,
+        topicName: r.topicName,
+        category: r.category,
+        count: r.count,
+        windowMinutes: BURST_WINDOW_MINUTES,
+        threshold: BURST_THRESHOLD,
+        firstSeenAt: new Date(r.firstSeenAt).toISOString(),
+        lastSeenAt: new Date(r.lastSeenAt).toISOString(),
+      })),
+    );
+  } catch (err) {
+    req.log.error({ err }, "Failed to get burst alerts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

@@ -8,6 +8,7 @@
 
 export * from "./analyticsSummary";
 export * from "./apiError";
+export * from "./burstAlert";
 export * from "./getRecentActivityParams";
 export * from "./healthStatus";
 export * from "./heatmapEntry";

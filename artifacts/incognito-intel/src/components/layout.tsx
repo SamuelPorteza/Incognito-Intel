@@ -40,7 +40,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
           <div className="p-4 mt-auto border-t border-border/50">
-             <Link
+            <Link
               href="/"
               className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground mb-4"
             >
@@ -54,13 +54,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </aside>
       ) : (
         <header className="absolute top-0 w-full flex h-16 items-center justify-between px-6 z-10">
-           <div className="flex items-center">
+          <div className="flex items-center">
             <BookOpen className="mr-2 h-5 w-5 text-primary" />
             <span className="font-semibold tracking-tight text-foreground">Incognito Intel</span>
           </div>
-          <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-            Teacher Portal
-          </Link>
+          <nav className="flex items-center gap-5">
+            <Link
+              href="/answers"
+              className={cn(
+                "text-sm font-medium transition-colors",
+                location === "/answers" ? "text-primary" : "text-muted-foreground hover:text-primary"
+              )}
+              data-testid="link-answers"
+            >
+              See Answers
+            </Link>
+            <Link
+              href="/dashboard"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              data-testid="link-teacher-portal"
+            >
+              Teacher Portal
+            </Link>
+          </nav>
         </header>
       )}
       <main className="flex-1 flex flex-col min-h-0 overflow-auto">

@@ -8,11 +8,13 @@ export const questionsTable = pgTable("questions", {
   content: text("content").notNull(),
   topicId: integer("topic_id").references(() => topicsTable.id),
   addressed: boolean("addressed").default(false).notNull(),
+  answer: text("answer"),
+  answeredAt: timestamp("answered_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertQuestionSchema = createInsertSchema(questionsTable)
-  .omit({ id: true, createdAt: true, addressed: true })
+  .omit({ id: true, createdAt: true, addressed: true, answer: true, answeredAt: true })
   .extend({
     content: z.string().min(5),
     topicId: z.number().int().optional().nullable(),

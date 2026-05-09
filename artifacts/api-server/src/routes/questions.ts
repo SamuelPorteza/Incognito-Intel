@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, questionsTable, topicsTable } from "@workspace/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import {
   SubmitQuestionBody,
   ListQuestionsQueryParams,
@@ -9,6 +9,38 @@ import {
 } from "@workspace/api-zod";
 
 const router = Router();
+
+const questionSelect = {
+  id: questionsTable.id,
+  content: questionsTable.content,
+  topicId: questionsTable.topicId,
+  topicName: topicsTable.name,
+  topicCategory: topicsTable.category,
+  addressed: questionsTable.addressed,
+  answer: questionsTable.answer,
+  answeredAt: questionsTable.answeredAt,
+  createdAt: questionsTable.createdAt,
+};
+
+interface QuestionRow {
+  id: number;
+  content: string;
+  topicId: number | null;
+  topicName: string | null;
+  topicCategory: string | null;
+  addressed: boolean;
+  answer: string | null;
+  answeredAt: Date | null;
+  createdAt: Date;
+}
+
+function serializeQuestion(r: QuestionRow) {
+  return {
+    ...r,
+    answeredAt: r.answeredAt?.toISOString() ?? null,
+    createdAt: r.createdAt.toISOString(),
+  };
+}
 
 router.get("/", async (req, res) => {
   const parseResult = ListQuestionsQueryParams.safeParse(req.query);
@@ -21,14 +53,7 @@ router.get("/", async (req, res) => {
 
   try {
     const rows = await db
-      .select({
-        id: questionsTable.id,
-        content: questionsTable.content,
-        topicId: questionsTable.topicId,
-        topicName: topicsTable.name,
-        topicCategory: topicsTable.category,
-        createdAt: questionsTable.createdAt,
-      })
+      .select(questionSelect)
       .from(questionsTable)
       .leftJoin(topicsTable, eq(questionsTable.topicId, topicsTable.id))
       .where(topic ? eq(topicsTable.name, topic) : undefined)
@@ -36,12 +61,7 @@ router.get("/", async (req, res) => {
       .limit(limit ?? 50)
       .offset(offset ?? 0);
 
-    res.json(
-      rows.map((r) => ({
-        ...r,
-        createdAt: r.createdAt.toISOString(),
-      })),
-    );
+    res.json(rows.map(serializeQuestion));
   } catch (err) {
     req.log.error({ err }, "Failed to list questions");
     res.status(500).json({ error: "Internal server error" });
@@ -82,6 +102,8 @@ router.post("/", async (req, res) => {
       ...question,
       topicName,
       topicCategory,
+      answer: null,
+      answeredAt: null,
       createdAt: question.createdAt.toISOString(),
     });
   } catch (err) {
@@ -103,15 +125,7 @@ router.get("/:id", async (req, res) => {
 
   try {
     const rows = await db
-      .select({
-        id: questionsTable.id,
-        content: questionsTable.content,
-        topicId: questionsTable.topicId,
-        topicName: topicsTable.name,
-        topicCategory: topicsTable.category,
-        addressed: questionsTable.addressed,
-        createdAt: questionsTable.createdAt,
-      })
+      .select(questionSelect)
       .from(questionsTable)
       .leftJoin(topicsTable, eq(questionsTable.topicId, topicsTable.id))
       .where(eq(questionsTable.id, id))
@@ -122,10 +136,7 @@ router.get("/:id", async (req, res) => {
       return;
     }
 
-    res.json({
-      ...rows[0],
-      createdAt: rows[0].createdAt.toISOString(),
-    });
+    res.json(serializeQuestion(rows[0]));
   } catch (err) {
     req.log.error({ err }, "Failed to get question");
     res.status(500).json({ error: "Internal server error" });
@@ -148,10 +159,20 @@ router.patch("/:id", async (req, res) => {
   const { id } = idParse.data;
   const updates = bodyParse.data;
 
+  // Auto-set answeredAt when an answer is being saved
+  const dbUpdates: Record<string, unknown> = { ...updates };
+  if ("answer" in updates) {
+    dbUpdates.answeredAt = updates.answer ? new Date() : null;
+    // Auto-mark as addressed when answered
+    if (updates.answer) {
+      dbUpdates.addressed = true;
+    }
+  }
+
   try {
     const [updated] = await db
       .update(questionsTable)
-      .set(updates)
+      .set(dbUpdates)
       .where(eq(questionsTable.id, id))
       .returning();
 
@@ -161,24 +182,13 @@ router.patch("/:id", async (req, res) => {
     }
 
     const rows = await db
-      .select({
-        id: questionsTable.id,
-        content: questionsTable.content,
-        topicId: questionsTable.topicId,
-        topicName: topicsTable.name,
-        topicCategory: topicsTable.category,
-        addressed: questionsTable.addressed,
-        createdAt: questionsTable.createdAt,
-      })
+      .select(questionSelect)
       .from(questionsTable)
       .leftJoin(topicsTable, eq(questionsTable.topicId, topicsTable.id))
       .where(eq(questionsTable.id, id))
       .limit(1);
 
-    res.json({
-      ...rows[0],
-      createdAt: rows[0]!.createdAt.toISOString(),
-    });
+    res.json(serializeQuestion(rows[0]!));
   } catch (err) {
     req.log.error({ err }, "Failed to update question");
     res.status(500).json({ error: "Internal server error" });

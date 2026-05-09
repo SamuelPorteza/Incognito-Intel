@@ -8,4 +8,6 @@
 
 export interface QuestionUpdate {
   addressed?: boolean;
+  /** @nullable */
+  answer?: string | null;
 }

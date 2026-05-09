@@ -16,5 +16,9 @@ export interface Question {
   /** @nullable */
   topicCategory: string | null;
   addressed: boolean;
+  /** @nullable */
+  answer: string | null;
+  /** @nullable */
+  answeredAt: string | null;
   createdAt: string;
 }

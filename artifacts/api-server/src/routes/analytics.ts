@@ -125,6 +125,8 @@ router.get("/recent", async (req, res) => {
     res.json(
       rows.map((r) => ({
         ...r,
+        answer: (r as Record<string, unknown>).answer ?? null,
+        answeredAt: ((r as Record<string, unknown>).answeredAt as Date | null)?.toISOString() ?? null,
         createdAt: r.createdAt.toISOString(),
       })),
     );

@@ -11,7 +11,7 @@ import {
   Cell
 } from "recharts";
 import { formatDistanceToNow } from "date-fns";
-import { HelpCircle, Brain, Target, MessageSquare, RefreshCw } from "lucide-react";
+import { HelpCircle, Brain, Target, MessageSquare, RefreshCw, BarChart2 } from "lucide-react";
 
 import { 
   useGetAnalyticsSummary, 

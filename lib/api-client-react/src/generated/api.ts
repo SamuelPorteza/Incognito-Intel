@@ -25,6 +25,7 @@ import type {
   ListQuestionsParams,
   Question,
   QuestionInput,
+  QuestionUpdate,
   Topic,
   TopicInput,
 } from "./api.schemas";
@@ -380,6 +381,93 @@ export function useGetQuestion<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Update a question (e.g. mark as addressed)
+ */
+export const getUpdateQuestionUrl = (id: number) => {
+  return `/api/questions/${id}`;
+};
+
+export const updateQuestion = async (
+  id: number,
+  questionUpdate: QuestionUpdate,
+  options?: RequestInit,
+): Promise<Question> => {
+  return customFetch<Question>(getUpdateQuestionUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(questionUpdate),
+  });
+};
+
+export const getUpdateQuestionMutationOptions = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateQuestion>>,
+    TError,
+    { id: number; data: BodyType<QuestionUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateQuestion>>,
+  TError,
+  { id: number; data: BodyType<QuestionUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateQuestion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateQuestion>>,
+    { id: number; data: BodyType<QuestionUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateQuestion(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateQuestionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateQuestion>>
+>;
+export type UpdateQuestionMutationBody = BodyType<QuestionUpdate>;
+export type UpdateQuestionMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Update a question (e.g. mark as addressed)
+ */
+export const useUpdateQuestion = <
+  TError = ErrorType<ApiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateQuestion>>,
+    TError,
+    { id: number; data: BodyType<QuestionUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateQuestion>>,
+  TError,
+  { id: number; data: BodyType<QuestionUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateQuestionMutationOptions(options));
+};
 
 /**
  * @summary List all topic categories

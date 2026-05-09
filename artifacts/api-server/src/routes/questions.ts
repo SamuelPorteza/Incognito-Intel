@@ -5,6 +5,7 @@ import {
   SubmitQuestionBody,
   ListQuestionsQueryParams,
   GetQuestionParams,
+  UpdateQuestionBody,
 } from "@workspace/api-zod";
 
 const router = Router();
@@ -108,6 +109,7 @@ router.get("/:id", async (req, res) => {
         topicId: questionsTable.topicId,
         topicName: topicsTable.name,
         topicCategory: topicsTable.category,
+        addressed: questionsTable.addressed,
         createdAt: questionsTable.createdAt,
       })
       .from(questionsTable)
@@ -126,6 +128,59 @@ router.get("/:id", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get question");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.patch("/:id", async (req, res) => {
+  const idParse = GetQuestionParams.safeParse({ id: Number(req.params.id) });
+  if (!idParse.success) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  const bodyParse = UpdateQuestionBody.safeParse(req.body);
+  if (!bodyParse.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
+  const { id } = idParse.data;
+  const updates = bodyParse.data;
+
+  try {
+    const [updated] = await db
+      .update(questionsTable)
+      .set(updates)
+      .where(eq(questionsTable.id, id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Question not found" });
+      return;
+    }
+
+    const rows = await db
+      .select({
+        id: questionsTable.id,
+        content: questionsTable.content,
+        topicId: questionsTable.topicId,
+        topicName: topicsTable.name,
+        topicCategory: topicsTable.category,
+        addressed: questionsTable.addressed,
+        createdAt: questionsTable.createdAt,
+      })
+      .from(questionsTable)
+      .leftJoin(topicsTable, eq(questionsTable.topicId, topicsTable.id))
+      .where(eq(questionsTable.id, id))
+      .limit(1);
+
+    res.json({
+      ...rows[0],
+      createdAt: rows[0]!.createdAt.toISOString(),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to update question");
     res.status(500).json({ error: "Internal server error" });
   }
 });

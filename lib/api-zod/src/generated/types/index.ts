@@ -14,5 +14,6 @@ export * from "./heatmapEntry";
 export * from "./listQuestionsParams";
 export * from "./question";
 export * from "./questionInput";
+export * from "./questionUpdate";
 export * from "./topic";
 export * from "./topicInput";

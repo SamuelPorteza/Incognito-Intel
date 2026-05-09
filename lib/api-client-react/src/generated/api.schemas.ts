@@ -22,7 +22,12 @@ export interface Question {
   topicName: string | null;
   /** @nullable */
   topicCategory: string | null;
+  addressed: boolean;
   createdAt: string;
+}
+
+export interface QuestionUpdate {
+  addressed?: boolean;
 }
 
 export interface QuestionInput {

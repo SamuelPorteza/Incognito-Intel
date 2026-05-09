@@ -30,6 +30,7 @@ export const ListQuestionsResponseItem = zod.object({
   topicId: zod.number().nullable(),
   topicName: zod.string().nullable(),
   topicCategory: zod.string().nullable(),
+  addressed: zod.boolean(),
   createdAt: zod.string(),
 });
 export const ListQuestionsResponse = zod.array(ListQuestionsResponseItem);
@@ -57,6 +58,28 @@ export const GetQuestionResponse = zod.object({
   topicId: zod.number().nullable(),
   topicName: zod.string().nullable(),
   topicCategory: zod.string().nullable(),
+  addressed: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update a question (e.g. mark as addressed)
+ */
+export const UpdateQuestionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateQuestionBody = zod.object({
+  addressed: zod.boolean().optional(),
+});
+
+export const UpdateQuestionResponse = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  topicId: zod.number().nullable(),
+  topicName: zod.string().nullable(),
+  topicCategory: zod.string().nullable(),
+  addressed: zod.boolean(),
   createdAt: zod.string(),
 });
 
@@ -121,6 +144,7 @@ export const GetRecentActivityResponseItem = zod.object({
   topicId: zod.number().nullable(),
   topicName: zod.string().nullable(),
   topicCategory: zod.string().nullable(),
+  addressed: zod.boolean(),
   createdAt: zod.string(),
 });
 export const GetRecentActivityResponse = zod.array(

@@ -109,6 +109,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+    patch:
+      operationId: updateQuestion
+      tags: [questions]
+      summary: Update a question (e.g. mark as addressed)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionUpdate"
+      responses:
+        "200":
+          description: Question updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /topics:
     get:
@@ -228,6 +257,8 @@ components:
           type: ["string", "null"]
         topicCategory:
           type: ["string", "null"]
+        addressed:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -236,7 +267,14 @@ components:
         - topicId
         - topicName
         - topicCategory
+        - addressed
         - createdAt
+
+    QuestionUpdate:
+      type: object
+      properties:
+        addressed:
+          type: boolean
 
     QuestionInput:
       type: object

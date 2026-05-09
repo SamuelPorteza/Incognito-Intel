@@ -1,10 +1,11 @@
-# [Project name]
+# Incognito Intel
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A digital classroom platform where students anonymously submit questions and teachers get real-time analytics on common learning struggles.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/incognito-intel run dev` — run the frontend (port 20692)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -14,6 +15,7 @@ _Replace the heading above with the project's name, and this line with one sente
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Frontend: React + Vite, Tailwind CSS, shadcn/ui, wouter, TanStack Query, Recharts
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
@@ -22,15 +24,24 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — Single source of truth for all API contracts
+- `lib/db/src/schema/` — Drizzle schema (topics.ts, questions.ts)
+- `artifacts/api-server/src/routes/` — Express route handlers
+- `artifacts/incognito-intel/src/` — React frontend
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Anonymous by design: questions store no user identity; no auth required for student submission
+- OpenAPI-first: all endpoints defined in openapi.yaml before implementation
+- Teacher portal accessible at `/dashboard` and `/questions` without authentication (suitable for classroom demo; can add auth later)
+- Heatmap uses bar chart (Recharts) with color intensity proportional to question volume
+- Topics are pre-seeded with common math subjects; teachers can add more via the questions page
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Student view** (`/`): Anonymous question submission with topic selector. "Slip it under the door" submit button.
+- **Teacher dashboard** (`/dashboard`): Summary stats (total questions, top struggle, active topics), topic heatmap bar chart, recent questions feed.
+- **Questions list** (`/questions`): Full filterable list of all anonymous questions; ability to add new topics.
 
 ## User preferences
 
@@ -38,7 +49,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Always run `pnpm run typecheck:libs` after adding new schema files to `lib/db/src/schema/` before typechecking leaf packages
+- After each OpenAPI spec change, re-run `pnpm --filter @workspace/api-spec run codegen`
+- The `lib/db` package uses Drizzle; schema changes require `pnpm --filter @workspace/db run push` to apply to the dev database
 
 ## Pointers
 

@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Incognito Intel API - Anonymous student Q&A platform with teacher analytics
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: questions
+    description: Anonymous question submission and listing
+  - name: topics
+    description: Topic/category management
+  - name: analytics
+    description: Analytics and heatmap data for teachers
 paths:
   /healthz:
     get:
@@ -24,6 +30,173 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /questions:
+    get:
+      operationId: listQuestions
+      tags: [questions]
+      summary: List all questions
+      parameters:
+        - name: topic
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+    post:
+      operationId: submitQuestion
+      tags: [questions]
+      summary: Submit an anonymous question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionInput"
+      responses:
+        "201":
+          description: Question submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /questions/{id}:
+    get:
+      operationId: getQuestion
+      tags: [questions]
+      summary: Get a single question
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Question found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /topics:
+    get:
+      operationId: listTopics
+      tags: [topics]
+      summary: List all topic categories
+      responses:
+        "200":
+          description: List of topics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Topic"
+    post:
+      operationId: createTopic
+      tags: [topics]
+      summary: Create a new topic category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TopicInput"
+      responses:
+        "201":
+          description: Topic created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Topic"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /analytics/heatmap:
+    get:
+      operationId: getHeatmap
+      tags: [analytics]
+      summary: Get topic frequency heatmap data
+      responses:
+        "200":
+          description: Heatmap data showing question counts per topic
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HeatmapEntry"
+
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get overall analytics summary
+      responses:
+        "200":
+          description: Summary statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/recent:
+    get:
+      operationId: getRecentActivity
+      tags: [analytics]
+      summary: Get recent question activity feed
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recent questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +207,120 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        topicId:
+          type: ["integer", "null"]
+        topicName:
+          type: ["string", "null"]
+        topicCategory:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - content
+        - topicId
+        - topicName
+        - topicCategory
+        - createdAt
+
+    QuestionInput:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 5
+        topicId:
+          type: ["integer", "null"]
+      required:
+        - content
+
+    Topic:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        questionCount:
+          type: integer
+      required:
+        - id
+        - name
+        - category
+        - questionCount
+
+    TopicInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+        category:
+          type: string
+          minLength: 2
+      required:
+        - name
+        - category
+
+    HeatmapEntry:
+      type: object
+      properties:
+        topicId:
+          type: integer
+        topicName:
+          type: string
+        category:
+          type: string
+        count:
+          type: integer
+        percentage:
+          type: number
+      required:
+        - topicId
+        - topicName
+        - category
+        - count
+        - percentage
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalQuestions:
+          type: integer
+        totalTopics:
+          type: integer
+        topTopic:
+          type: ["string", "null"]
+        topTopicCount:
+          type: ["integer", "null"]
+        topTopicPercentage:
+          type: ["number", "null"]
+        questionsToday:
+          type: integer
+        questionsThisWeek:
+          type: integer
+      required:
+        - totalQuestions
+        - totalTopics
+        - topTopic
+        - topTopicCount
+        - topTopicPercentage
+        - questionsToday
+        - questionsThisWeek
